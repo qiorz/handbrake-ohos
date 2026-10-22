@@ -1,5 +1,12 @@
 # HandBrake → HarmonyOS（OHOS arm64）移植
 
+> [!IMPORTANT]
+> **状态说明（置顶）**
+>
+> - **未做 UI 美化**：界面只做到“能操作”，没有视觉设计、没有动效，控件与布局都很朴素。
+> - **更新随缘**：个人业余项目，更新节奏不固定，issue / PR 可能长期不处理，不承诺任何时间点。
+> - **相关项目**：[Aegisub → HarmonyOS 移植](https://github.com/qiorz/aegisub-ohos)
+
 把 [HandBrake](https://handbrake.fr) 的视频转码引擎（libhb + 其自带 CLI 驱动）交叉编译为
 OHOS arm64 动态库，通过 NAPI 暴露给 ArkTS 应用，在 HarmonyOS 设备上直接跑 HandBrakeCLI 的
 完整能力（preset、参数解析、job pipeline、进度回调）。
@@ -85,6 +92,11 @@ hvigorw assembleHap --no-daemon
 
 `project/entry/build-profile.json5` 里 `externalNativeOptions.arguments` 的两个 `-D` 路径
 （`HB_PREFIX`、`HB_SRC`）指向本机的构建产物目录，**换机器后需要改成你的实际路径**。
+
+## 相关项目
+
+- [Aegisub → HarmonyOS 移植](https://github.com/qiorz/aegisub-ohos) —— 字幕编辑 / 打轴工具的 OHOS 移植，
+  与本项目同源思路（OHOS NDK 交叉编译 + ArkTS 外壳）。
 
 ## 许可与合规
 

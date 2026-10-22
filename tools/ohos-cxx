@@ -1,0 +1,7 @@
+#!/bin/sh
+# OHOS arm64 C++ compiler driver for MSYS2-side cross builds.
+exec "D:/ohosndk/llvm/bin/clang++.exe" \
+  --target=aarch64-linux-ohos \
+  --sysroot="D:/ohosndk/sysroot" \
+  -D__MUSL__ \
+  "$@"

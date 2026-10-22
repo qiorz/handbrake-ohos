@@ -1,0 +1,57 @@
+{
+  // 签名材料已被移除（原文件里是上一台机器的加密口令，属于机器绑定材料，
+  // 对其它机器无意义，也不应该随包外传）。
+  //
+  // 你需要自己填一个 signingConfigs 条目，要求：
+  //   * profile 由华为签发，且 profile 里的 bundle-name == com.handbrake.ohos
+  //   * profile 的 debug-info.device-ids 包含你设备的 UDID（hdc shell bm get --udid）
+  //   * certpath / storeFile / profile 三项路径指向你自己的 .cer / .p12 / .p7b
+  //   * keyPassword / storePassword 若由 DevEco 自动签名生成，会把密文粘在这里
+  //
+  // 注意：不要用 OpenHarmony SDK 自签（OpenHarmony.p12 + hap-sign-tool.jar），
+  // 华为设备会以 "fail to verify pkcs7 file"(9568257) 拒绝。
+  //
+  // 填好之前，`hvigorw assembleHap` 会在 SignHap 阶段报 00303074
+  // "bundleName ... does not match the generated SigningConfigs" —— 这是预期行为；
+  // 未签名的 HAP 仍然会正常产出在 entry/build/default/outputs/default/ 下。
+  "app": {
+    "signingConfigs": [],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "compatibleSdkVersion": "5.0.0(12)",
+        "runtimeOS": "HarmonyOS",
+        "targetSdkVersion": "26.0.0",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug"
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}

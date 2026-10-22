@@ -1,0 +1,8 @@
+{
+  "modelVersion": "5.0.0",
+  "description": "HandBrake video transcoder ported to HarmonyOS (OHOS arm64)",
+  "dependencies": {
+  },
+  "devDependencies": {
+  }
+}

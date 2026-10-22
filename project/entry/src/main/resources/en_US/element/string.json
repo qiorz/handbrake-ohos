@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "HandBrake video transcoder (HarmonyOS port)"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "HandBrake for HarmonyOS"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "HandBrake"
+    }
+  ]
+}

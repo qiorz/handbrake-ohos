@@ -1,0 +1,11 @@
+{
+  "app": {
+    "bundleName": "com.handbrake.ohos",
+    "vendor": "handbrake-ohos-port",
+    "versionCode": 3000001,
+    "versionName": "3.0.1",
+    "buildVersion": "1",
+    "icon": "$media:layered_image",
+    "label": "$string:app_name"
+  }
+}

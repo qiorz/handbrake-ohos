@@ -1,0 +1,8 @@
+#!/bin/sh
+# OHOS arm64 C compiler driver (MSYS2-side equivalent of the NDK's
+# aarch64-unknown-linux-ohos-clang shell wrapper, which only exists for Unix hosts).
+exec "D:/ohosndk/llvm/bin/clang.exe" \
+  --target=aarch64-linux-ohos \
+  --sysroot="D:/ohosndk/sysroot" \
+  -D__MUSL__ \
+  "$@"

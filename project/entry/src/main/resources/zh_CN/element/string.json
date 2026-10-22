@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "HandBrake 视频转码器（鸿蒙移植版）"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "HandBrake 鸿蒙版"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "HandBrake"
+    }
+  ]
+}

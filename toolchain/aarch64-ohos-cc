@@ -1,0 +1,5 @@
+#!/bin/sh
+# OHOS arm64 clang wrapper for a Linux/macOS build host.
+# Point OHOS_NDK at <DevEco>/sdk/default/openharmony/native
+NDK=${OHOS_NDK:?set OHOS_NDK to <sdk>/default/openharmony/native}
+exec "$NDK/llvm/bin/clang" --target=aarch64-linux-ohos --sysroot="$NDK/sysroot" "$@"

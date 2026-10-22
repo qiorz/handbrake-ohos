@@ -1,0 +1,36 @@
+{
+  "apiType": "stageMode",
+  "buildOption": {
+    "externalNativeOptions": {
+      "path": "./src/main/cpp/CMakeLists.txt",
+      // 换机器后必须改成本机的实际路径（hvigor 不会展开环境变量）：
+      //   HB_PREFIX = tools/build-libhb.sh 的安装前缀，通常 <repo>/out/ohos-arm64
+      //   HB_SRC    = HandBrake 1.11.2 源码根，通常 <repo>/src/handbrake
+      "arguments": "-DHB_PREFIX=/path/to/handbrake-ohos/out/ohos-arm64 -DHB_SRC=/path/to/handbrake-ohos/src/handbrake",
+      "cppFlags": "",
+      "abiFilters": [
+        "arm64-v8a"
+      ]
+    }
+  },
+  "buildOptionSet": [
+    {
+      "name": "release",
+      "arkOptions": {
+        "obfuscation": {
+          "ruleOptions": {
+            "enable": false,
+            "files": [
+              "./obfuscation-rules.txt"
+            ]
+          }
+        }
+      }
+    },
+  ],
+  "targets": [
+    {
+      "name": "default"
+    }
+  ]
+}

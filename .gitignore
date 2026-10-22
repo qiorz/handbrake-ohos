@@ -1,0 +1,43 @@
+# ---- 构建产物 ----
+build/
+**/build/
+.hvigor/
+**/.hvigor/
+oh_modules/
+**/.cxx/
+*.hap
+*.app
+*.har
+*.so
+*.a
+*.o
+
+# ---- 大体积依赖 / 预编译库 / 上游源码（不入库，见 README「获取方式」）----
+prebuilt/
+sources/
+deps/
+out/
+cli/
+logs/
+*.zip
+*.tar.bz2
+*.tar.gz
+
+# ---- 签名与密钥：绝对不要提交 ----
+*.p12
+*.cer
+*.p7b
+*.pem
+*.key
+*.jks
+signing/
+local.properties
+
+# ---- 日志与本地环境 ----
+*.log
+device-log-*
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp

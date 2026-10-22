@@ -11,7 +11,7 @@
  * picker, output is copied back out through the system save dialog.
  */
 import { deviceInfo, pasteboard } from '@kit.BasicServicesKit';
-import { fileIo as fs, picker } from '@kit.CoreFileKit';
+import { fileIo as fs, picker, statfs } from '@kit.CoreFileKit';
 import { common } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { promptAction } from '@kit.ArkUI';
@@ -133,6 +133,13 @@ struct Index {
   @State presetName: string = '';
   @State presetLabel: string = '自定义';
   @State presetState: string = '加载预设…';
+  @State showStorage: boolean = false;
+  @State stCache: string = '-';
+  @State stInput: string = '-';
+  @State stOutput: string = '-';
+  @State stLog: string = '-';
+  @State stTotal: string = '-';
+  @State stDisk: string = '-';
   @State customPresets: CustomPreset[] = [];
   @State overridePreset: boolean = false;
   @State audioCodec: string = 'aac';
@@ -477,6 +484,179 @@ struct Index {
       }
     }
     this.presetState = `已载入「${name}」参数`;
+  }
+
+  /** 递归统计目录：返回 [字节数, 文件数] */
+  private dirUsage(path: string): number[] {
+    let bytes = 0;
+    let count = 0;
+    try {
+      const names: string[] = fs.listFileSync(path);
+      for (const n of names) {
+        const full = `${path}/${n}`;
+        try {
+          const st = fs.statSync(full);
+          if (st.isDirectory()) {
+            const sub = this.dirUsage(full);
+            bytes += sub[0];
+            count += sub[1];
+          } else {
+            bytes += st.size;
+            count++;
+          }
+        } catch (e) {
+          // skip unreadable entries
+        }
+      }
+    } catch (e) {
+      // directory does not exist
+    }
+    return [bytes, count];
+  }
+
+  /** 统计某类前缀文件：返回 [字节数, 文件数] */
+  private prefixUsage(dir: string, prefixes: string[]): number[] {
+    let bytes = 0;
+    let count = 0;
+    try {
+      const names: string[] = fs.listFileSync(dir);
+      for (const n of names) {
+        let hit = false;
+        for (const p of prefixes) {
+          if (n.startsWith(p)) {
+            hit = true;
+          }
+        }
+        if (!hit) {
+          continue;
+        }
+        try {
+          const st = fs.statSync(`${dir}/${n}`);
+          if (!st.isDirectory()) {
+            bytes += st.size;
+            count++;
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    return [bytes, count];
+  }
+
+  private refreshStorage(): void {
+    const cache = this.dirUsage(this.ctx.cacheDir);
+    const input = this.prefixUsage(this.ctx.filesDir, ['input-']);
+    const output = this.prefixUsage(this.ctx.filesDir, ['out-', 'diag-', 'hb-']);
+    const log = this.dirUsage(`${this.ctx.filesDir}/logs`);
+    const total = cache[0] + input[0] + output[0] + log[0];
+    this.stCache = `${humanSize(cache[0])} · ${cache[1]} 个`;
+    this.stInput = `${humanSize(input[0])} · ${input[1]} 个`;
+    this.stOutput = `${humanSize(output[0])} · ${output[1]} 个`;
+    this.stLog = `${humanSize(log[0])} · ${log[1]} 个`;
+    this.stTotal = humanSize(total);
+    try {
+      const free: number = statfs.getFreeSizeSync(this.ctx.filesDir);
+      const all: number = statfs.getTotalSizeSync(this.ctx.filesDir);
+      this.stDisk = `可用 ${humanSize(free)} / 共 ${humanSize(all)}`;
+    } catch (e) {
+      this.stDisk = '无法获取磁盘空间';
+    }
+  }
+
+  private removeMatching(dir: string, prefixes: string[]): void {
+    try {
+      const names: string[] = fs.listFileSync(dir);
+      for (const n of names) {
+        let hit = false;
+        for (const p of prefixes) {
+          if (n.startsWith(p)) {
+            hit = true;
+          }
+        }
+        if (!hit) {
+          continue;
+        }
+        const full = `${dir}/${n}`;
+        try {
+          const st = fs.statSync(full);
+          if (st.isDirectory()) {
+            fs.rmdirSync(full);
+          } else {
+            fs.unlinkSync(full);
+          }
+        } catch (e) {
+          // ignore failures, keep cleaning the rest
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  private clearCache(): void {
+    this.removeMatching(this.ctx.cacheDir, ['']);
+  }
+
+  private clearFiles(kind: string): void {
+    if (this.running) {
+      this.status = '转码进行中，请先取消或等待完成';
+      promptAction.showToast({ message: '转码中不能清理', duration: 1500 });
+      return;
+    }
+    if (kind === 'cache') {
+      this.clearCache();
+    } else if (kind === 'input') {
+      this.removeMatching(this.ctx.filesDir, ['input-']);
+      this.inPath = '';
+      this.inName = '';
+      this.inSize = -1;
+      this.thumb = undefined;
+      this.meta = '';
+    } else if (kind === 'output') {
+      this.removeMatching(this.ctx.filesDir, ['out-', 'diag-', 'hb-']);
+      this.outPath = '';
+      this.outSize = -1;
+      this.exportedUri = '';
+    } else if (kind === 'log') {
+      this.removeMatching(`${this.ctx.filesDir}/logs`, ['']);
+    } else if (kind === 'all') {
+      this.clearCache();
+      this.removeMatching(`${this.ctx.filesDir}/logs`, ['']);
+      this.removeMatching(this.ctx.filesDir, ['input-', 'out-', 'diag-', 'hb-', 'sub-']);
+      this.inPath = '';
+      this.inName = '';
+      this.inSize = -1;
+      this.outPath = '';
+      this.outSize = -1;
+      this.thumb = undefined;
+      this.meta = '';
+      this.exportedUri = '';
+    }
+    this.refreshStorage();
+    this.status = '已清理';
+    promptAction.showToast({ message: '已清理', duration: 1500 });
+  }
+
+  private confirmClean(kind: string, label: string, detail: string): void {
+    AlertDialog.show({
+      title: `清理${label}`,
+      message: `将删除 ${detail}，此操作不可撤销。`,
+      primaryButton: {
+        value: '取消',
+        action: () => {
+        }
+      },
+      secondaryButton: {
+        value: '清理',
+        fontColor: '#CC3333',
+        action: () => {
+          this.clearFiles(kind);
+        }
+      }
+    });
   }
 
   /** 预设名由参数自动生成，用户不需要输入任何文字 */
@@ -1292,6 +1472,73 @@ struct Index {
                 .onClick(() => { this.exportLog(); })
             }
             .width('100%')
+            Button(this.showStorage ? '收起沙箱缓存' : '沙箱缓存')
+              .width('100%').height(34).fontSize(12)
+              .backgroundColor('#F1F3F5').fontColor('#333333')
+              .onClick(() => {
+                this.showStorage = !this.showStorage;
+                if (this.showStorage) {
+                  this.refreshStorage();
+                }
+              })
+            if (this.showStorage) {
+              Column({ space: 8 }) {
+                Row() {
+                  Text('占用合计').fontSize(12).fontWeight(FontWeight.Medium)
+                  Blank()
+                  Text(this.stTotal).fontSize(12).fontWeight(FontWeight.Medium)
+                }
+                .width('100%')
+                Text(this.stDisk).fontSize(10).fontColor('#999999').width('100%')
+
+                Row({ space: 8 }) {
+                  Text('缓存 / 临时文件').fontSize(12).layoutWeight(1)
+                  Text(this.stCache).fontSize(11).fontColor('#666666')
+                  Button('清理').height(28).fontSize(10)
+                    .backgroundColor('#FFFFFF').fontColor('#333333')
+                    .onClick(() => { this.confirmClean('cache', '缓存', this.stCache); })
+                }
+                .width('100%')
+                Row({ space: 8 }) {
+                  Text('导入的源文件').fontSize(12).layoutWeight(1)
+                  Text(this.stInput).fontSize(11).fontColor('#666666')
+                  Button('清理').height(28).fontSize(10)
+                    .backgroundColor('#FFFFFF').fontColor('#333333')
+                    .onClick(() => { this.confirmClean('input', '源文件', this.stInput); })
+                }
+                .width('100%')
+                Row({ space: 8 }) {
+                  Text('转码产物').fontSize(12).layoutWeight(1)
+                  Text(this.stOutput).fontSize(11).fontColor('#666666')
+                  Button('清理').height(28).fontSize(10)
+                    .backgroundColor('#FFFFFF').fontColor('#333333')
+                    .onClick(() => { this.confirmClean('output', '产物', this.stOutput); })
+                }
+                .width('100%')
+                Row({ space: 8 }) {
+                  Text('日志').fontSize(12).layoutWeight(1)
+                  Text(this.stLog).fontSize(11).fontColor('#666666')
+                  Button('清理').height(28).fontSize(10)
+                    .backgroundColor('#FFFFFF').fontColor('#333333')
+                    .onClick(() => { this.confirmClean('log', '日志', this.stLog); })
+                }
+                .width('100%')
+                Row({ space: 8 }) {
+                  Button('全部清理').layoutWeight(1).height(32).fontSize(12)
+                    .backgroundColor('#FFEDED').fontColor('#CC3333')
+                    .onClick(() => { this.confirmClean('all', '全部缓存与文件', this.stTotal); })
+                  Button('刷新').layoutWeight(1).height(32).fontSize(12)
+                    .backgroundColor('#F1F3F5').fontColor('#333333')
+                    .onClick(() => { this.refreshStorage(); })
+                }
+                .width('100%')
+                Text('清理只会删除本应用沙箱内的文件，导出到系统目录的视频不受影响。')
+                  .fontSize(10).fontColor('#999999').width('100%')
+              }
+              .padding(10).width('100%')
+              .backgroundColor('#FFFFFF').borderRadius(8)
+              .alignItems(HorizontalAlign.Start)
+            }
             Text(this.diag).fontSize(11).width('100%').fontColor('#555555')
             Text('日志路径（点击复制）').fontSize(10).fontColor('#999999')
               .onClick(() => { this.copyLogPath(); })
